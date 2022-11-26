@@ -47,7 +47,6 @@ class M_item_transaksi extends CI_Model{
         $insert_id  = $this->db->insert_id();
         $result  = $this->db->get_where('item_transaksi', array('id' => $insert_id));
 
-        //kode untuk mengubah stok start
         $result_produk = $this->db->get_where('produk', array('id' => $data["produk_id"]));
         $result_produk = $result_produk->row_array();
         $stok_lama = $result_produk["stok"];
@@ -59,7 +58,6 @@ class M_item_transaksi extends CI_Model{
 
         $this->db->where('id', $data["produk_id"]);
         $this->db->update('produk', $data_produk_update);
-        //kode untuk mengubah stok end
         return $result->row_array();
     }
 

@@ -18,7 +18,7 @@ class Api_pcs extends REST_Controller{
         $this->load->model('M_item_transaksi');
     }
 
-    //mengecek token
+    //check token
     public function cekToken(){
         try {
             $token = $this->input->get_request_header('Authorization');
@@ -42,15 +42,54 @@ class Api_pcs extends REST_Controller{
         }
     }
 
-    //menampilkan admin
+    //login admin
+    public function login_post(){
+        $data = array(
+            "email"     => $this    ->input->post("email"),
+            "password"  => md5($this->input->post("password"))
+        );
+
+        //proses login
+        $result = $this->M_admin->cekLoginAdmin($data);
+
+        if (empty($result)) {
+            $data_json = array(
+                "success"    => false,
+                "message"    => "Email dan Password tidak valid",
+                "error_code" => 1308,
+                "data"       => null
+            );
+
+            $this->response($data_json, REST_Controller::HTTP_OK);
+            $this->output->_display();
+            exit();
+        } else {
+            $date = new Datetime();
+
+            $payload["id"]      = $result["id"];
+            $payload["email"]   = $result["email"];
+            $payload["iat"]     = $date->getTimestamp();
+            $payload["exp"]     = $date->getTimestamp() + 3600;
+
+            $data_json = array(
+                "success" => true,
+                "message" => "Otentikasi Berhasil",
+                "data"    => array(
+                    "admin" => $result,
+                    "token" => JWT::encode($payload, $this->secret_key))
+            );
+
+            $this->response($data_json, REST_Controller::HTTP_OK);
+        }
+    }
+
+    //tampil admin
     public function admin_get(){   
-        //mengecek token
         $this->cekToken();
 
-        //memanggil data admin dari Model
+        //proses get admin
         $data = $this->M_admin->getData();
 
-        //menampilkan data
         $result = array(
             "success"   => true,
             "message"   => "Data found",
@@ -63,14 +102,13 @@ class Api_pcs extends REST_Controller{
     //tambah admin
     public function admin_post(){   
         $this->cekToken();
-        //menangkap data
         $data = array(
             'email'     => $this    ->post('email'),
-            'password'  => md5($this->post('password')), //hash password
+            'password'  => md5($this->post('password')),
             'nama'      => $this    ->post('nama')
         );
 
-        //memproses add data dengan fungsi insertData di Madmin
+        //proses
         $insert = $this->M_admin->insertData($data);
 
         if ($insert) {
@@ -101,7 +139,6 @@ class Api_pcs extends REST_Controller{
             array_push($validation_message, "Nama tidak boleh kosong");
         }
 
-        //jika tidak valid
         if (count($validation_message) > 0) {
             $data_json = array(
                 "success"   => false,
@@ -115,7 +152,6 @@ class Api_pcs extends REST_Controller{
         }
 
         //valid
-        //menangkap data
         $data = array(
             "email"     => $this    ->put("email"),
             "password"  => md5($this->put("password")),
@@ -124,10 +160,9 @@ class Api_pcs extends REST_Controller{
 
         $id = $this->put("id");
         
-        //memproses update data dengan fungsi updateAdmin di Madmin
+        //proses
         $result = $this->M_admin->updateAdmin($data, $id);
 
-        //berhasil
         $data_json = array(
             "success"   => true,
             "message"   => "Update Berhasil",
@@ -141,14 +176,12 @@ class Api_pcs extends REST_Controller{
 
     //hapus admin
     public function admin_delete(){   
-        //mengecek token
         $this->cekToken();
-        //menangkap id yang di hapus
         $id = $this->delete("id");
-        //Proses hapus data admin dengan fungsi deleteAdmin di Madmin
+
+        //Proses
         $result = $this->M_admin->deleteAdmin($id);
 
-        //jika gagal
         if (empty($result)) {
             $data_json = array(
                 "success" => false,
@@ -161,7 +194,6 @@ class Api_pcs extends REST_Controller{
             exit();
         }
 
-        //jika berhasil
         $data_json = array(
             "success"   => true,
             "message"   => "Delete Berhasil",
@@ -173,57 +205,14 @@ class Api_pcs extends REST_Controller{
         $this->response($data_json, REST_Controller::HTTP_OK);
     }
 
-    //login admin
-    public function login_post(){
-        //tangkap data 
-        $data = array(
-            "email"     => $this    ->input->post("email"),
-            "password"  => md5($this->input->post("password"))
-        );
-        //proses login
-        $result = $this->M_admin->cekLoginAdmin($data);
-
-        if (empty($result)) {
-            //jika tidak valid
-            $data_json = array(
-                "success"    => false,
-                "message"    => "Email dan Password tidak valid",
-                "error_code" => 1308,
-                "data"       => null
-            );
-
-            $this->response($data_json, REST_Controller::HTTP_OK);
-            $this->output->_display();
-            exit();
-        } else {
-            //jika valid
-            $date = new Datetime();
-
-            $payload["id"]      = $result["id"];
-            $payload["email"]   = $result["email"];
-            $payload["iat"]     = $date->getTimestamp();
-            $payload["exp"]     = $date->getTimestamp() + 3600;
-
-            $data_json = array(
-                "success" => true,
-                "message" => "Otentikasi Berhasil",
-                "data"    => array(
-                    "admin" => $result,
-                    "token" => JWT::encode($payload, $this->secret_key))
-            );
-
-            $this->response($data_json, REST_Controller::HTTP_OK);
-        }
-    }
-
     //produk
 
-    //menampilkan produk
+    //tampil produk
     public function produk_get(){
         $this->cekToken();
-        //memanggil data produk 
+
+        //proses
         $result = $this->M_produk->getProduk();
-        //menampilkan data produk
         $data_json = array(
             "success" => true,
             "message" => "Data found",
@@ -235,11 +224,9 @@ class Api_pcs extends REST_Controller{
         $this->response($data_json, REST_Controller::HTTP_OK);
     }
 
-    //ADD data produk POST
+    //tambah data
     public function produk_post(){   
-        // cek token
         $this->cekToken();
-        // validasi
         $validation_message = [];
 
         if ($this->post("admin_id") == "") {
@@ -263,7 +250,6 @@ class Api_pcs extends REST_Controller{
         if ($this->post("stok") == "" && !is_numeric($this->input->post("stok"))) {
             array_push($validation_message, "Stok harus di isi angka");
         }
-        //jika tidak valid
         if (count($validation_message) > 0) {
             $data_json = array(
                 "success" => false,
@@ -275,17 +261,13 @@ class Api_pcs extends REST_Controller{
             $this->output->_display();
             exit();
         }
-        //valid
-        //menangkap data
         $data = array(
             'admin_id'  => $this->input->post('admin_id'),
             'nama'      => $this->input->post('nama'),
             'harga'     => $this->input->post('harga'),
             'stok'      => $this->input->post('stok')
         );
-        //memproses add data dengan fungsi insertProduk di Mproduk
         $result = $this->M_produk->insertProduk($data);
-        //menampilkan 
         $data_json = array(
             "success" => true,
             "message" => "insert Berhasil",
@@ -296,7 +278,7 @@ class Api_pcs extends REST_Controller{
         $this->response($data_json, REST_Controller::HTTP_OK);
     }
 
-    //mengedit produk
+    //edit produk
     public function produk_put(){   
         $this->cekToken();
         $validation_message = [];
@@ -323,7 +305,6 @@ class Api_pcs extends REST_Controller{
             array_push($validation_message, "stok harus di isi angka");
         }
 
-        //tidak valid
         if (count($validation_message) > 0) {
             $data_json = array(
                 "success" => false,
@@ -336,8 +317,6 @@ class Api_pcs extends REST_Controller{
             exit();
         }
 
-        //valid
-        //menangkap data
         $data = array(
             'admin_id'  => $this->put('admin_id'),
             'nama'      => $this->put('nama'),
@@ -347,10 +326,9 @@ class Api_pcs extends REST_Controller{
 
         $id = $this->put("id");
 
-        //memproses update data dengan fungsi updateProduk di Mproduk
+        //proses update
         $result = $this->M_produk->updateProduk($data, $id);
 
-        //berhasil
         $data_json = array(
             "success" => true,
             "message" => "Update Berhasil",
@@ -364,14 +342,12 @@ class Api_pcs extends REST_Controller{
 
     //hapus produk
     public function produk_delete(){   
-        //mengecek token 
         $this->cekToken();
-        //menangkap id produk yang ingin di hapus
+
         $id = $this->delete("id");
-        //Proses hapus data produk dengan fungsi deleteProduk di Mproduk
+        //Proses
         $result = $this->M_produk->deleteProduk($id);
 
-        //jika gagal/tidak valid
         if (empty($result)) {
             $data_json = array(
                 "success" => false,
@@ -384,7 +360,6 @@ class Api_pcs extends REST_Controller{
             exit();
         }
 
-        //jika berhasil
         $data_json = array(
             "success" => true,
             "message" => "Delete Berhasil",
@@ -396,15 +371,13 @@ class Api_pcs extends REST_Controller{
         $this->response($data_json, REST_Controller::HTTP_OK);
     }
 
-    //menampilkan transaksi
+    //tampil transaksi
     public function transaksi_get(){   
-        //mengecek token
         $this->cekToken();
 
-        //memanggil data produk dari Model
+        //proses get
         $data = $this->M_transaksi->getTransaksi();
 
-        //menampilkan data
         $data_json = array(
             "success" => true,
             "message" => "Data found",
@@ -414,11 +387,26 @@ class Api_pcs extends REST_Controller{
         $this->response($data_json, REST_Controller::HTTP_OK);
     }
 
+    //tampil transaksi bulan ini
+    public function transaksi_bulan_ini_get(){   
+        //cek token
+        $this->cekToken();
+        //proses panggil data dengan fungsi getTransaksiBulanIni
+        $data = $this->M_transaksi->getTransaksiBulanIni();
+
+        //tampil data 
+        $result = array(
+            "success" => true,
+            "message" => "Data found",
+            "data" => $data
+        );
+
+        echo json_encode($result);
+    }
+
     //tambah transaksi
     public function transaksi_post(){   
-        //mengecek token
         $this->cekToken();
-        //validasi
         $validation_message = [];
 
         if ($this->input->post("admin_id") == "") {
@@ -434,7 +422,6 @@ class Api_pcs extends REST_Controller{
             array_push($validation_message, "total harus di isi angka");
         }
 
-        //jika tidak valid
         if (count($validation_message) > 0) {
             $data_json = array(
                 "success" => false,
@@ -447,17 +434,14 @@ class Api_pcs extends REST_Controller{
             exit();
         }
 
-        //menangkap data
         $data = array(
             'admin_id'  => $this->input->post('admin_id'),
             'total'     => $this->input->post('total'),
             'tanggal'   => date("Y-m-d H:i:s")
         );
 
-        //insert produk dengan fungsi insertTransaksi di Mtransaksi
         $result = $this->M_transaksi->insertTransaksi($data);
 
-        //show if data valid
         $data_json = array(
             "success"   => true,
             "message"   => "Insert Berhasil",
@@ -469,11 +453,9 @@ class Api_pcs extends REST_Controller{
         $this->response($data_json, REST_Controller::HTTP_OK);
     }
 
-    //mengedit transaksi
+    //edit transaksi
     public function transaksi_put(){   
-        //cektoken
         $this->cekToken();
-        //validasi
         $validation_message = [];
 
         if ($this->put("id") == "") {
@@ -492,7 +474,6 @@ class Api_pcs extends REST_Controller{
             array_push($validation_message, "total harus di isi angka");
         }
 
-        //jika tidak valid
         if (count($validation_message) > 0) {
             $data_json = array(
                 "success" => false,
@@ -505,18 +486,15 @@ class Api_pcs extends REST_Controller{
             exit();
         }
 
-        //tangkap data
         $data = array(
             'admin_id'  => $this->put("admin_id"),
             'total'     => $this->put("total"),
             'tanggal'   => date("Y-m-d H:i:s")
         );
 
-        //update data transaksi dengan fungsi updateTransaksi di Mtransaksi
         $id = $this->put("id");
         $result = $this->M_transaksi->updateTransaksi($data, $id);
         
-        //jika berhasil
         $data_json = array(
             "success" => true,
             "message" => "Update Berhasil",
@@ -530,14 +508,12 @@ class Api_pcs extends REST_Controller{
 
     //hapus transaksi
     public function transaksi_delete(){   
-        //mengecek token
         $this->cekToken();
-        //menangkap id yang di hapus
+
         $id = $this->delete("id");
-        //proses hapus data transaksi dengan fungsi deleteTransaksi di Mtransaksi
+        //proses delte
         $result = $this->M_transaksi->deleteTransaksi($id);
 
-        //jika tidak valid
         if (empty($result)) {
             $data_json = array(
                 "success" => false,
@@ -550,7 +526,6 @@ class Api_pcs extends REST_Controller{
             exit();
         }
 
-        //jika berhasil
         $data_json = array(
             "success" => true,
             "message" => "Delete Berhasil",
@@ -562,53 +537,14 @@ class Api_pcs extends REST_Controller{
         $this->response($data_json, REST_Controller::HTTP_OK);
     }
 
-    //memanggil data transaksi yang terjadi selama satu bulan terakhir 
-    public function transaksi_bulan_ini_get(){   
-        //cek token
-        $this->cekToken();
-        //proses panggil data dengan fungsi getTransaksiBulanIni
-        $data = $this->M_transaksi->getTransaksiBulanIni();
-
-        //tampil data 
-        $result = array(
-            "success" => true,
-            "message" => "Data found",
-            "data" => $data
-        );
-
-        echo json_encode($result);
-    }
-   
-    //item transaksi
-
-    //menampilkan data item transaksi
+    //tampil item transaksi
     public function item_transaksi_get(){   
         //mengecek token
         $this->cekToken();
 
-        //memanggil data item transaksi dari Model 
+        //proses get
         $result = $this->M_item_transaksi->getitemtransaksi();
 
-        //menampilkan data
-        $data_json = array(
-            "success" => true,
-            "message" => "Data found",
-            "data" => array(
-                "item_transaksi" => $result
-            )
-        );
-
-        $this->response($data_json, REST_Controller::HTTP_OK);
-    }
-
-    //menampilkan data item transaksi berdasarkan id
-    public function item_transaksi_by_transaksi_id_get(){   
-        //mengecek token
-        $this->cekToken();
-        //memanggil data transaksi by id dari Model
-        $result = $this->M_item_transaksi->getitemtransaksibytransaksiID($this->input->get('transaksi_id'));
-        
-        //menampilkan
         $data_json = array(
             "success" => true,
             "message" => "Data found",
@@ -622,9 +558,7 @@ class Api_pcs extends REST_Controller{
 
     //tambah item transaksi
     public function item_transaksi_post(){   
-        //cek token
         $this->cekToken();
-        //validation
         $validation_message = [];
 
         if ($this->input->post("transaksi_id") == "") {
@@ -652,7 +586,6 @@ class Api_pcs extends REST_Controller{
             array_push($validation_message, "harga_saat_transaksi harus di isi angka");
         }
 
-        //jika tidak valid
         if (count($validation_message) > 0) {
             $data_json = array(
                 "success" => false,
@@ -664,8 +597,7 @@ class Api_pcs extends REST_Controller{
             $this->output->_display();
             exit();
         }
-        //valid
-        //menangkap data
+
         $data = array(
             'transaksi_id' => $this->input->post('transaksi_id'),
             'produk_id' => $this->input->post('produk_id'),
@@ -674,10 +606,9 @@ class Api_pcs extends REST_Controller{
             'sub_total' => $this->input->post('qty') * $this->input->post('harga_saat_transaksi')
         );
 
-        //add data item transaksi dengan fungsi insertitemtransaksi di Mitemtransaksi
+        //proses
         $result = $this->M_item_transaksi->insertitemtransaksi($data);
 
-        //berhasil
         $data_json = array(
             "success" => true,
             "message" => "Insert Berhasil",
@@ -689,11 +620,9 @@ class Api_pcs extends REST_Controller{
         $this->response($data_json, REST_Controller::HTTP_OK);
     }
 
-    //mengedit data
+    //edit item transaksi
     public function item_transaksi_put(){   
-        //cektoken
         $this->cekToken();
-        //validasi
         $validation_message = [];
 
         if ($this->put("id") == "") {
@@ -724,7 +653,6 @@ class Api_pcs extends REST_Controller{
             array_push($validation_message, "harga_saat_transaksi harus di isi angka");
         }
         
-        //jika tidak valid
         if (count($validation_message) > 0) {
             $data_json = array(
                 "success" => false,
@@ -737,8 +665,6 @@ class Api_pcs extends REST_Controller{
             exit();
         }
 
-        //valid
-        //menangkap data
         $data = array(
             'transaksi_id' => $this->put('transaksi_id'),
             'produk_id' => $this->put('produk_id'),
@@ -748,10 +674,9 @@ class Api_pcs extends REST_Controller{
         );
 
         $id = $this->put("id");
-        //update data item transaksi
+        //proses update
         $result = $this->M_item_transaksi->updateitem_transaksi($data, $id);
         
-        //jika berhasil
         $data_json = array(
             "success" => true,
             "message" => "Update Berhasil",
@@ -765,15 +690,13 @@ class Api_pcs extends REST_Controller{
 
     //delete item transaksi
     public function item_transaksi_delete(){ 
-        //cektoken
         $this->cekToken();
-        //menangkap data id
+
         $id = $this->delete("id");
 
         //proses delete
         $result = $this->M_item_transaksi->deleteitem_transaksi($id);
-        
-        //jika gagal
+
         if (empty($result)) {
             $data_json = array(
                 "success" => false,
@@ -786,7 +709,6 @@ class Api_pcs extends REST_Controller{
             exit();
         }
 
-        //jika berhasil
         $data_json = array(
             "success" => true,
             "message" => "Delete Berhasil",
@@ -798,17 +720,33 @@ class Api_pcs extends REST_Controller{
         $this->response($data_json, REST_Controller::HTTP_OK);
     }
 
+     //tampil transaksi by transaksi id
+     public function item_transaksi_by_transaksi_id_get(){   
+        $this->cekToken();
+
+        //proses get
+        $result = $this->M_item_transaksi->getitemtransaksibytransaksiID($this->input->get('transaksi_id'));
+        
+        $data_json = array(
+            "success" => true,
+            "message" => "Data found",
+            "data" => array(
+                "item_transaksi" => $result
+            )
+        );
+
+        $this->response($data_json, REST_Controller::HTTP_OK);
+    }
+
     //delete item transaksi by transaksi id
     public function item_transaksi_by_transaksi_id_delete(){   
-        //cektoken
         $this->cekToken();
-        //tangkap data
+
         $transaksi_id = $this->delete("transaksi_id");
 
-        //proses delete where transaksi id
+        //proses delete
         $result = $this->M_item_transaksi->deleteitem_transaksibytransaksiID($transaksi_id);
         
-        //jika gagal
         if (empty($result)) {
             $data_json = array(
                 "success" => false,
@@ -821,7 +759,6 @@ class Api_pcs extends REST_Controller{
             exit();
         }
 
-        //jika berhasil
         $data_json = array(
             "success" => true,
             "message" => "Delete Berhasil",
